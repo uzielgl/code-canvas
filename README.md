@@ -30,16 +30,18 @@ npm run dev
 bun dev
 ```
 
-The app will be available at **http://localhost:8080**.
+The app will be available at **http://localhost:8082**.
 
 ## Features
 
 - **Monaco Editor** — Full-featured YAML code editor with syntax highlighting
+- **Structured JSON Mode** — Switch between WireframeDSL (YAML) and JSON
 - **Live Preview** — Real-time rendering of your DSL as UI components
 - **Wireframe Mode** — Low-fidelity sketch style for early prototyping
 - **UI Mode** — High-fidelity styled output using Tailwind/shadcn
 - **Validation Console** — Instant feedback on YAML syntax and schema errors
-- **Templates** — Pre-built examples (Login Form, Dashboard, Data Table, Settings)
+- **Examples Catalog** — Browse `/examples` with many built-in templates and component combinations
+- **Persistent Templates** — Create, update, delete, and publish templates stored on disk in `storage/templates.json`
 - **Copy AST** — Export the parsed JSON AST to clipboard
 
 ## DSL Reference

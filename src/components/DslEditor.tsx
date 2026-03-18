@@ -1,16 +1,18 @@
 import React from "react";
 import Editor from "@monaco-editor/react";
+import type { DslFormat } from "@/lib/dsl-parser";
 
 interface DslEditorProps {
   value: string;
   onChange: (value: string) => void;
+  format: DslFormat;
 }
 
-const DslEditor: React.FC<DslEditorProps> = ({ value, onChange }) => {
+const DslEditor: React.FC<DslEditorProps> = ({ value, onChange, format }) => {
   return (
     <Editor
       height="100%"
-      defaultLanguage="yaml"
+      language={format === "json" ? "json" : "yaml"}
       value={value}
       onChange={(v) => onChange(v ?? "")}
       theme="vs-dark"

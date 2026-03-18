@@ -1,8 +1,33 @@
-export type ComponentType =
-  | "window" | "row" | "column" | "grid" | "table"
-  | "input" | "textarea" | "select" | "checkbox"
-  | "button" | "label" | "text"
-  | "modal" | "card" | "tabs";
+export const SUPPORTED_COMPONENT_TYPES = [
+  "window",
+  "row",
+  "column",
+  "grid",
+  "table",
+  "input",
+  "textarea",
+  "select",
+  "checkbox",
+  "button",
+  "label",
+  "text",
+  "modal",
+  "card",
+  "tabs",
+] as const;
+
+export type ComponentType = (typeof SUPPORTED_COMPONENT_TYPES)[number];
+
+export const CONTAINER_COMPONENT_TYPES = [
+  "window",
+  "row",
+  "column",
+  "grid",
+  "table",
+  "modal",
+  "card",
+  "tabs",
+] as const;
 
 export interface DslNode {
   type: ComponentType;
@@ -25,17 +50,9 @@ export interface ParseResult {
   errors: ValidationError[];
 }
 
-const VALID_TYPES = new Set<string>([
-  "window", "row", "column", "grid", "table",
-  "input", "textarea", "select", "checkbox",
-  "button", "label", "text",
-  "modal", "card", "tabs",
-]);
+const VALID_TYPES = new Set<string>(SUPPORTED_COMPONENT_TYPES);
 
-const CONTAINER_TYPES = new Set<string>([
-  "window", "row", "column", "grid", "table",
-  "modal", "card", "tabs",
-]);
+const CONTAINER_TYPES = new Set<string>(CONTAINER_COMPONENT_TYPES);
 
 export function validateNode(node: unknown, path: string): ValidationError[] {
   const errors: ValidationError[] = [];
