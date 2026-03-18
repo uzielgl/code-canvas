@@ -373,7 +373,6 @@ const NodeRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) =
         <input
           type={String(p.inputType ?? "text")}
           placeholder={String(p.placeholder ?? "")}
-          readOnly
           {...interactiveProps}
         />
       );
@@ -392,7 +391,6 @@ const NodeRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) =
       return (
         <textarea
           placeholder={String(p.placeholder ?? "")}
-          readOnly
           rows={Number(p.rows) || 3}
           {...interactiveProps}
         />
@@ -427,8 +425,7 @@ const NodeRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) =
         <label {...interactiveProps}>
           <input
             type="checkbox"
-            readOnly
-            checked={Boolean(p.checked)}
+            defaultChecked={Boolean(p.checked)}
             className={w
               ? "border border-wire-stroke h-3 w-3"
               : "h-4 w-4 rounded border-input text-primary"

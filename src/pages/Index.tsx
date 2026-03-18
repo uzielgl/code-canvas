@@ -28,7 +28,8 @@ const Index: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [dsl, setDsl] = useState(DEFAULT_DSL);
   const [format, setFormat] = useState<DslFormat>("yaml");
-  const [mode, setMode] = useState<"wireframe" | "ui">("wireframe");
+  const [mode, setMode] = useState<"wireframe" | "ui">("ui");
+  const [canvasLayout, setCanvasLayout] = useState<"split" | "preview">("split");
   const [ast, setAst] = useState<DslRoot | null>(null);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [templates, setTemplates] = useState<StoredTemplate[]>([]);
@@ -309,6 +310,15 @@ const Index: React.FC = () => {
     handleLoadTemplate(matchedTemplate);
   }, [handleLoadTemplate, templates]);
 
+  const handleNewTemplate = useCallback(() => {
+    appliedDocumentRef.current = null;
+    setSearchParams({}, { replace: true });
+    setCurrentTemplateName("Untitled Template");
+    setFormat("yaml");
+    setDsl(DEFAULT_DSL);
+    toast.success("Started a new template");
+  }, [setSearchParams]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const isSaveShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s";
@@ -335,11 +345,14 @@ const Index: React.FC = () => {
         <GlobalToolbar
           mode={mode}
           format={format}
+          canvasLayout={canvasLayout}
           currentTemplateName={currentTemplateName}
           templates={templates}
           onCurrentTemplateNameChange={setCurrentTemplateName}
           onModeChange={setMode}
           onFormatChange={handleFormatChange}
+          onCanvasLayoutChange={setCanvasLayout}
+          onNewTemplate={handleNewTemplate}
           onSaveCurrentTemplate={() => { void handleSaveCurrentTemplate(); }}
           onOpenTemplate={handleLoadTemplate}
           onOpenTemplateManager={() => setIsTemplateManagerOpen(true)}
@@ -347,13 +360,15 @@ const Index: React.FC = () => {
           saveDisabled={!templatesLoaded}
         />
         <div className="flex flex-1 min-h-0">
-          <div className="w-1/2 flex flex-col border-r border-border min-h-0">
-            <div className="flex-1 min-h-0">
-              <DslEditor value={dsl} onChange={setDsl} format={format} />
+          {canvasLayout === "split" && (
+            <div className="w-1/2 flex flex-col border-r border-border min-h-0">
+              <div className="flex-1 min-h-0">
+                <DslEditor value={dsl} onChange={setDsl} format={format} />
+              </div>
+              <ValidationConsole errors={errors} />
             </div>
-            <ValidationConsole errors={errors} />
-          </div>
-          <div className="w-1/2 min-h-0">
+          )}
+          <div className={`${canvasLayout === "split" ? "w-1/2" : "w-full"} min-h-0`}>
             <LiveCanvas
               ast={previewAst}
               mode={mode}
