@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createStoredTemplate,
   normalizeTags,
+  slugifyTemplateName,
   sortTemplatesByUpdatedAt,
   updateStoredTemplate,
 } from "./template-store";
@@ -29,6 +30,8 @@ describe("template store helpers", () => {
       includeInExamples: false,
     });
 
+    expect(template.id).toBe(slugifyTemplateName("Customer dashboard"));
+    expect(updatedTemplate.id).toBe(slugifyTemplateName("Revenue dashboard"));
     expect(updatedTemplate.name).toBe("Revenue dashboard");
     expect(updatedTemplate.category).toBe("Analytics");
     expect(updatedTemplate.tags).toEqual(["analytics", "revenue"]);

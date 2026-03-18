@@ -54,4 +54,27 @@ describe("dsl parser", () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message.toLowerCase()).toContain("json");
   });
+
+  it("accepts a menu component with grouped items and badges", () => {
+    const source = `root:
+  type: window
+  children:
+    - type: menu
+      props:
+        groups:
+          - title: Shop
+            items:
+              - label: Products
+                icon: products
+                badge: 3
+              - label: Orders
+                icon: orders
+                active: true
+`;
+
+    const result = parseDsl(source, "yaml");
+
+    expect(result.errors).toEqual([]);
+    expect(result.ast?.root.children?.[0].type).toBe("menu");
+  });
 });

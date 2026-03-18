@@ -3,6 +3,7 @@ export const SUPPORTED_COMPONENT_TYPES = [
   "row",
   "column",
   "grid",
+  "menu",
   "table",
   "input",
   "textarea",
@@ -54,15 +55,107 @@ const VALID_TYPES = new Set<string>(SUPPORTED_COMPONENT_TYPES);
 
 const CONTAINER_TYPES = new Set<string>(CONTAINER_COMPONENT_TYPES);
 
-export function validateNode(node: unknown, path: string): ValidationError[] {
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validateMenuNodeProps(props: unknown, path: string): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  if (typeof node !== "object" || node === null || Array.isArray(node)) {
-    errors.push({ message: `${path}: expected an object` });
+  if (props === undefined) {
+    errors.push({ message: `${path}: "menu" requires a "props" object` });
     return errors;
   }
 
-  const obj = node as Record<string, unknown>;
+  if (!isObjectRecord(props)) {
+    errors.push({ message: `${path}: "props" must be an object` });
+    return errors;
+  }
+
+  const groups = props.groups;
+  const items = props.items;
+
+  if (groups === undefined && items === undefined) {
+    errors.push({ message: `${path}: menu requires "groups" or "items"` });
+    return errors;
+  }
+
+  const validateItem = (item: unknown, itemPath: string) => {
+    if (!isObjectRecord(item)) {
+      errors.push({ message: `${itemPath}: expected an object` });
+      return;
+    }
+
+    if (typeof item.label !== "string" || item.label.trim().length === 0) {
+      errors.push({ message: `${itemPath}: "label" must be a non-empty string` });
+    }
+
+    if (item.icon !== undefined && typeof item.icon !== "string") {
+      errors.push({ message: `${itemPath}: "icon" must be a string` });
+    }
+
+    if (item.link !== undefined && typeof item.link !== "string") {
+      errors.push({ message: `${itemPath}: "link" must be a string` });
+    }
+
+    if (item.active !== undefined && typeof item.active !== "boolean") {
+      errors.push({ message: `${itemPath}: "active" must be a boolean` });
+    }
+
+    if (
+      item.badge !== undefined
+      && typeof item.badge !== "string"
+      && typeof item.badge !== "number"
+    ) {
+      errors.push({ message: `${itemPath}: "badge" must be a string or number` });
+    }
+  };
+
+  const validateGroup = (group: unknown, groupPath: string) => {
+    if (!isObjectRecord(group)) {
+      errors.push({ message: `${groupPath}: expected an object` });
+      return;
+    }
+
+    if (group.title !== undefined && typeof group.title !== "string") {
+      errors.push({ message: `${groupPath}: "title" must be a string` });
+    }
+
+    if (!Array.isArray(group.items)) {
+      errors.push({ message: `${groupPath}: "items" must be an array` });
+      return;
+    }
+
+    group.items.forEach((item, index) => validateItem(item, `${groupPath}.items[${index}]`));
+  };
+
+  if (groups !== undefined) {
+    if (!Array.isArray(groups)) {
+      errors.push({ message: `${path}: "groups" must be an array` });
+    } else {
+      groups.forEach((group, index) => validateGroup(group, `${path}.groups[${index}]`));
+    }
+  }
+
+  if (items !== undefined) {
+    if (!Array.isArray(items)) {
+      errors.push({ message: `${path}: "items" must be an array` });
+    } else {
+      items.forEach((item, index) => validateItem(item, `${path}.items[${index}]`));
+    }
+  }
+
+  return errors;
+}
+
+export function validateNode(node: unknown, path: string): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (!isObjectRecord(node)) {
+    errors.push({ message: `${path}: expected an object` });
+    return errors;
+  }
+  const obj = node;
 
   if (!obj.type || typeof obj.type !== "string") {
     errors.push({ message: `${path}: missing or invalid "type"` });
@@ -75,6 +168,10 @@ export function validateNode(node: unknown, path: string): ValidationError[] {
 
   if (obj.props !== undefined && (typeof obj.props !== "object" || obj.props === null || Array.isArray(obj.props))) {
     errors.push({ message: `${path}: "props" must be an object` });
+  }
+
+  if (obj.type === "menu") {
+    errors.push(...validateMenuNodeProps(obj.props, `${path}.props`));
   }
 
   if (obj.children !== undefined) {

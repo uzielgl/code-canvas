@@ -34,7 +34,7 @@ describe("template repository", () => {
     expect(listedAfterCreate).toHaveLength(1);
     expect(listedAfterCreate[0].id).toBe(created.id);
 
-    await repository.updateTemplateMetadataRecord(created.id, {
+    const renamedTemplate = await repository.updateTemplateMetadataRecord(created.id, {
       name: "Updated template",
       description: "Metadata only",
       category: "Examples",
@@ -42,7 +42,7 @@ describe("template repository", () => {
       includeInExamples: false,
     });
 
-    await repository.overwriteTemplateRecord(created.id, {
+    await repository.overwriteTemplateRecord(renamedTemplate.id, {
       name: "Updated template",
       description: "Overwrite content",
       category: "Examples",
@@ -53,10 +53,35 @@ describe("template repository", () => {
     });
 
     const listedAfterOverwrite = await repository.listTemplates();
+    expect(listedAfterOverwrite[0].id).toBe("updated-template");
     expect(listedAfterOverwrite[0].format).toBe("json");
     expect(listedAfterOverwrite[0].includeInExamples).toBe(true);
 
-    await repository.deleteTemplateRecord(created.id);
+    await repository.deleteTemplateRecord("updated-template");
     expect(await repository.listTemplates()).toEqual([]);
+  });
+
+  it("rejects duplicate template names", async () => {
+    const repository = await import("./template-repository");
+
+    await repository.createTemplateRecord({
+      name: "Admin Dashboard",
+      description: "",
+      category: "Custom",
+      tags: [],
+      includeInExamples: false,
+      format: "yaml",
+      source: "root:\n  type: window\n",
+    });
+
+    await expect(repository.createTemplateRecord({
+      name: "admin dashboard",
+      description: "",
+      category: "Custom",
+      tags: [],
+      includeInExamples: false,
+      format: "yaml",
+      source: "root:\n  type: window\n",
+    })).rejects.toMatchObject({ statusCode: 409 });
   });
 });

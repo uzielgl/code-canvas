@@ -2,6 +2,7 @@ import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   createStoredTemplate,
+  slugifyTemplateName,
   sortTemplatesByUpdatedAt,
   updateStoredTemplate,
   type StoredTemplate,
@@ -60,6 +61,19 @@ async function writeTemplatesToDisk(templates: StoredTemplate[]): Promise<void> 
   );
 }
 
+function assertUniqueTemplateName(
+  templates: StoredTemplate[],
+  nextName: string,
+  currentTemplateId?: string,
+): void {
+  const nextId = slugifyTemplateName(nextName);
+  const conflictingTemplate = templates.find((template) => template.id === nextId && template.id !== currentTemplateId);
+
+  if (conflictingTemplate) {
+    throw new TemplateRepositoryError(`A template named "${conflictingTemplate.name}" already exists`, 409);
+  }
+}
+
 function assertMetadataInput(input: unknown): asserts input is TemplateMetadataInput {
   if (typeof input !== "object" || input === null) {
     throw new TemplateRepositoryError("Invalid template payload");
@@ -99,6 +113,7 @@ export async function createTemplateRecord(input: unknown): Promise<StoredTempla
   assertContentInput(input);
 
   const templates = await readTemplatesFromDisk();
+  assertUniqueTemplateName(templates, input.name);
   const createdTemplate = createStoredTemplate(input);
   const nextTemplates = [createdTemplate, ...templates];
   await writeTemplatesToDisk(nextTemplates);
@@ -115,6 +130,7 @@ export async function updateTemplateMetadataRecord(templateId: string, input: un
     throw new TemplateRepositoryError("Template not found", 404);
   }
 
+  assertUniqueTemplateName(templates, input.name, currentTemplate.id);
   const updatedTemplate = updateStoredTemplate(currentTemplate, input);
   await writeTemplatesToDisk(
     templates.map((template) => (template.id === templateId ? updatedTemplate : template)),
@@ -133,6 +149,7 @@ export async function overwriteTemplateRecord(templateId: string, input: unknown
     throw new TemplateRepositoryError("Template not found", 404);
   }
 
+  assertUniqueTemplateName(templates, input.name, currentTemplate.id);
   const updatedTemplate = updateStoredTemplate(currentTemplate, input);
   await writeTemplatesToDisk(
     templates.map((template) => (template.id === templateId ? updatedTemplate : template)),

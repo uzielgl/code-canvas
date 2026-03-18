@@ -22,6 +22,7 @@ const win = (title: string, children: DslNode[]): DslRoot => ({
 const row = (...children: DslNode[]) => node("row", undefined, children);
 const column = (...children: DslNode[]) => node("column", undefined, children);
 const grid = (columns: number, ...children: DslNode[]) => node("grid", { columns }, children);
+const menu = (groups: Array<{ title?: string; items: Array<Record<string, unknown>> }>) => node("menu", { groups });
 const card = (title: string, ...children: DslNode[]) => node("card", { title }, children);
 const tabs = (labels: string[], ...children: DslNode[]) => node("tabs", { tabs: labels }, children);
 const modal = (title: string, ...children: DslNode[]) => node("modal", { title, open: true }, children);
@@ -38,6 +39,59 @@ const table = (columns: string[], rows: Array<Array<string | number>>) => node("
 export const DEFAULT_EXAMPLE_ID = "workspace-starter";
 
 export const BUILT_IN_EXAMPLES: BuiltInExample[] = [
+  {
+    id: "grouped-admin-menu",
+    name: "Grouped Admin Menu",
+    description: "Vertical grouped navigation with active state, icons, and numeric badges.",
+    category: "Index",
+    tags: ["menu", "navigation", "badges"],
+    document: win(
+      "Admin Navigation",
+      [
+        row(
+          menu([
+            {
+              items: [
+                { label: "Welcome", icon: "home", active: true },
+                { label: "Shop Dashboard", icon: "dashboard" },
+                { label: "HR Dashboard", icon: "hr" },
+              ],
+            },
+            {
+              title: "Shop",
+              items: [
+                { label: "Products", icon: "products", badge: 3 },
+                { label: "Orders", icon: "orders", badge: 169 },
+                { label: "Customers", icon: "users" },
+                { label: "Brands", icon: "handbook" },
+                { label: "Product Categories", icon: "category" },
+              ],
+            },
+            {
+              title: "HR",
+              items: [
+                { label: "Employees", icon: "user" },
+                { label: "Departments", icon: "business" },
+                { label: "Leave Requests", icon: "calendar", badge: 70 },
+                { label: "Expenses", icon: "tickets", badge: 70 },
+              ],
+            },
+          ]),
+          column(
+            card(
+              "Overview",
+              text("Use the menu component for deterministic, grouped application navigation."),
+              row(
+                card("Active Workspace", text("Welcome")),
+                card("Open Orders", text("169")),
+                card("Pending Leave Requests", text("70")),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  },
   {
     id: "workspace-starter",
     name: "Workspace Starter",

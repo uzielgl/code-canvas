@@ -3,12 +3,13 @@ import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
+  leftChildren?: React.ReactNode;
   children?: React.ReactNode;
 }
 
 const navClassName = "rounded-md px-3 py-1 text-xs font-mono transition-colors";
 
-const AppHeader: React.FC<AppHeaderProps> = ({ children }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ leftChildren, children }) => {
   return (
     <div className="h-12 bg-deep-slate flex items-center justify-between px-4 shrink-0 gap-4">
       <div className="flex items-center gap-3 min-w-0">
@@ -32,7 +33,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({ children }) => {
           >
             Examples
           </NavLink>
+          <NavLink
+            to="/docs"
+            className={cn(navClassName, "text-console-fg hover:text-primary-foreground")}
+            activeClassName="bg-primary text-primary-foreground"
+          >
+            Docs
+          </NavLink>
         </nav>
+        {leftChildren}
       </div>
       <div className="flex items-center gap-2 flex-wrap justify-end">
         {children}

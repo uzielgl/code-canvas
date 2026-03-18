@@ -30,19 +30,25 @@
 - Why: wireframe and UI mode should show the same structure with different visual fidelity.
 - Consequence: new node types should support both modes together instead of only one branch.
 
-## ADR-006: Keep The Product As A Single-Screen Workbench
+## ADR-006: Persist Templates Outside The Browser
+
+- Status: accepted
+- Why: user-created templates must survive browser cache clears and server restarts.
+- Consequence: template storage flows through a local server repository and disk-backed JSON file.
+
+## ADR-007: Keep The Product As A Single-Screen Workbench With Supporting Routes
 
 - Status: accepted
 - Why: the current workflow is tightly centered on edit, validate, and preview.
-- Consequence: new routes should be a deliberate product decision, not incidental growth.
+- Consequence: new routes should be a deliberate product decision, not incidental growth. Current support routes are `/examples` and `/docs`.
 
-## ADR-007: Generated shadcn Files Are A Shared Primitive Layer
+## ADR-008: Generated shadcn Files Are A Shared Primitive Layer
 
 - Status: accepted
 - Why: the repository includes a large generated UI surface that is not the core product logic.
 - Consequence: app changes should prefer composition over editing generated files.
 
-## ADR-008: Documentation And Tests Currently Trail The Implementation
+## ADR-009: Documentation And Tests Currently Trail The Implementation
 
 - Status: open debt
 - Why: the checked-in README describes an older DSL shape, and automated tests do not yet protect the core pipeline.

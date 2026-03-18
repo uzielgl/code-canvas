@@ -26,18 +26,14 @@ export interface TemplateContentInput extends TemplateMetadataInput {
   source: string;
 }
 
-function generateTemplateId(name: string): string {
+export function slugifyTemplateName(name: string): string {
   const base = name
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  const uniqueSuffix = globalThis.crypto?.randomUUID
-    ? globalThis.crypto.randomUUID().slice(0, 8)
-    : Date.now().toString(36);
-
-  return `${base || "template"}-${uniqueSuffix}`;
+  return base || "template";
 }
 
 export function normalizeTags(tags: string[] | string): string[] {
@@ -55,7 +51,7 @@ export function createStoredTemplate(input: TemplateContentInput): StoredTemplat
   const timestamp = new Date().toISOString();
 
   return {
-    id: generateTemplateId(input.name),
+    id: slugifyTemplateName(input.name),
     name: input.name.trim(),
     description: input.description.trim(),
     category: input.category.trim() || "Custom",
@@ -72,9 +68,12 @@ export function updateStoredTemplate(
   template: StoredTemplate,
   updates: Partial<TemplateContentInput>,
 ): StoredTemplate {
+  const nextName = updates.name !== undefined ? updates.name.trim() : template.name;
+
   return {
     ...template,
-    ...(updates.name !== undefined ? { name: updates.name.trim() } : {}),
+    id: slugifyTemplateName(nextName),
+    ...(updates.name !== undefined ? { name: nextName } : {}),
     ...(updates.description !== undefined ? { description: updates.description.trim() } : {}),
     ...(updates.category !== undefined ? { category: updates.category.trim() || "Custom" } : {}),
     ...(updates.tags !== undefined ? { tags: normalizeTags(updates.tags) } : {}),
