@@ -30,6 +30,7 @@ const LS_CANVAS_LAYOUT = "wireframedsl.canvasLayout";
 const LS_SPLIT_LEFT_SIZE = "wireframedsl.splitLeftSize";
 const LS_MODE = "wireframedsl.mode";
 const LS_FORMAT = "wireframedsl.format";
+const LS_WORD_WRAP = "wireframedsl.wordWrap";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -82,6 +83,20 @@ const Index: React.FC = () => {
 
     // Keep both panels usable.
     return clamp(parsed, 20, 80);
+  });
+  const [wordWrapEnabled, setWordWrapEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+
+    const stored = window.localStorage.getItem(LS_WORD_WRAP);
+    if (stored === "false") {
+      return false;
+    }
+    if (stored === "true") {
+      return true;
+    }
+    return true;
   });
   const [ast, setAst] = useState<DslRoot | null>(null);
   const [errors, setErrors] = useState<ValidationError[]>([]);
@@ -235,6 +250,18 @@ const Index: React.FC = () => {
 
     window.localStorage.setItem(LS_FORMAT, format);
   }, [format]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(LS_WORD_WRAP, String(wordWrapEnabled));
+  }, [wordWrapEnabled]);
+
+  const handleToggleWordWrap = useCallback(() => {
+    setWordWrapEnabled((prev) => !prev);
+  }, []);
 
   const handleFormatChange = useCallback((nextFormat: DslFormat) => {
     if (nextFormat === format) {
@@ -488,7 +515,35 @@ const Index: React.FC = () => {
             >
               <ResizablePanel defaultSize={splitLeftSize} minSize={20} className="flex flex-col min-h-0">
                 <div className="flex-1 min-h-0">
-                  <DslEditor value={dsl} onChange={setDsl} format={format} />
+                  <DslEditor value={dsl} onChange={setDsl} format={format} wordWrapEnabled={wordWrapEnabled} />
+                </div>
+                <div className="flex items-center justify-end gap-1 px-2 py-2 border-b border-border">
+                  <button
+                    onClick={() => { void handleToggleWordWrap(); }}
+                    className={`px-2.5 py-1 text-xs font-mono transition-colors ${
+                      wordWrapEnabled
+                        ? "bg-primary text-primary-foreground"
+                        : "text-console-fg hover:text-primary-foreground"
+                    }`}
+                    title="Wrap lines"
+                    aria-label="Wrap lines"
+                    type="button"
+                  >
+                    Wrap
+                  </button>
+                  <button
+                    onClick={() => { void handleToggleWordWrap(); }}
+                    className={`px-2.5 py-1 text-xs font-mono transition-colors ${
+                      !wordWrapEnabled
+                        ? "bg-primary text-primary-foreground"
+                        : "text-console-fg hover:text-primary-foreground"
+                    }`}
+                    title="No wrap"
+                    aria-label="No wrap"
+                    type="button"
+                  >
+                    No wrap
+                  </button>
                 </div>
                 <ValidationConsole errors={errors} />
               </ResizablePanel>

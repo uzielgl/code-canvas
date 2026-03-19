@@ -6,9 +6,10 @@ interface DslEditorProps {
   value: string;
   onChange: (value: string) => void;
   format: DslFormat;
+  wordWrapEnabled?: boolean;
 }
 
-const DslEditor: React.FC<DslEditorProps> = ({ value, onChange, format }) => {
+const DslEditor: React.FC<DslEditorProps> = ({ value, onChange, format, wordWrapEnabled = true }) => {
   return (
     <Editor
       height="100%"
@@ -26,7 +27,7 @@ const DslEditor: React.FC<DslEditorProps> = ({ value, onChange, format }) => {
         tabSize: 2,
         automaticLayout: true,
         padding: { top: 12 },
-        wordWrap: "on",
+        wordWrap: wordWrapEnabled ? "on" : "off",
       }}
     />
   );
