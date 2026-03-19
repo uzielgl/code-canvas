@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import DslEditor from "@/components/DslEditor";
+import EditorSettingsDock from "@/components/EditorSettingsDock";
 import LiveCanvas from "@/components/LiveCanvas";
 import ValidationConsole from "@/components/ValidationConsole";
 import GlobalToolbar from "@/components/GlobalToolbar";
@@ -103,6 +104,7 @@ const Index: React.FC = () => {
   const [templates, setTemplates] = useState<StoredTemplate[]>([]);
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
+  const [isEditorSettingsOpen, setIsEditorSettingsOpen] = useState(false);
   const [currentTemplateName, setCurrentTemplateName] = useState("Workspace Starter");
   const lastValidAst = useRef<DslRoot | null>(null);
   const appliedDocumentRef = useRef<string | null>(null);
@@ -259,8 +261,8 @@ const Index: React.FC = () => {
     window.localStorage.setItem(LS_WORD_WRAP, String(wordWrapEnabled));
   }, [wordWrapEnabled]);
 
-  const handleToggleWordWrap = useCallback(() => {
-    setWordWrapEnabled((prev) => !prev);
+  const handleWordWrapChange = useCallback((enabled: boolean) => {
+    setWordWrapEnabled(enabled);
   }, []);
 
   const handleFormatChange = useCallback((nextFormat: DslFormat) => {
@@ -483,19 +485,16 @@ const Index: React.FC = () => {
       <div className="h-screen flex flex-col overflow-hidden">
         <GlobalToolbar
           mode={mode}
-          format={format}
           canvasLayout={canvasLayout}
           currentTemplateName={currentTemplateName}
           templates={templates}
           onCurrentTemplateNameChange={setCurrentTemplateName}
           onModeChange={setMode}
-          onFormatChange={handleFormatChange}
           onCanvasLayoutChange={setCanvasLayout}
           onNewTemplate={handleNewTemplate}
           onSaveCurrentTemplate={() => { void handleSaveCurrentTemplate(); }}
           onOpenTemplate={handleLoadTemplate}
           onOpenTemplateManager={() => setIsTemplateManagerOpen(true)}
-          ast={ast}
           saveDisabled={!templatesLoaded}
         />
         <div className="flex flex-1 min-h-0 h-full">
@@ -517,34 +516,15 @@ const Index: React.FC = () => {
                 <div className="flex-1 min-h-0">
                   <DslEditor value={dsl} onChange={setDsl} format={format} wordWrapEnabled={wordWrapEnabled} />
                 </div>
-                <div className="flex items-center justify-end gap-1 px-2 py-2 border-b border-border">
-                  <button
-                    onClick={() => { void handleToggleWordWrap(); }}
-                    className={`px-2.5 py-1 text-xs font-mono transition-colors ${
-                      wordWrapEnabled
-                        ? "bg-primary text-primary-foreground"
-                        : "text-console-fg hover:text-primary-foreground"
-                    }`}
-                    title="Wrap lines"
-                    aria-label="Wrap lines"
-                    type="button"
-                  >
-                    Wrap
-                  </button>
-                  <button
-                    onClick={() => { void handleToggleWordWrap(); }}
-                    className={`px-2.5 py-1 text-xs font-mono transition-colors ${
-                      !wordWrapEnabled
-                        ? "bg-primary text-primary-foreground"
-                        : "text-console-fg hover:text-primary-foreground"
-                    }`}
-                    title="No wrap"
-                    aria-label="No wrap"
-                    type="button"
-                  >
-                    No wrap
-                  </button>
-                </div>
+                <EditorSettingsDock
+                  ast={ast}
+                  format={format}
+                  wordWrapEnabled={wordWrapEnabled}
+                  isOpen={isEditorSettingsOpen}
+                  onOpenChange={setIsEditorSettingsOpen}
+                  onFormatChange={handleFormatChange}
+                  onWordWrapChange={handleWordWrapChange}
+                />
                 <ValidationConsole errors={errors} />
               </ResizablePanel>
               <ResizableHandle withHandle />

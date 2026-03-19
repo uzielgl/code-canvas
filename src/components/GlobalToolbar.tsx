@@ -1,7 +1,6 @@
 import React from "react";
-import { ChevronDown, Columns2, Copy, FilePlus2, PanelRightOpen, Save } from "lucide-react";
-import type { DslRoot } from "@/lib/dsl-schema";
-import { DSL_FORMAT_LABELS, type DslFormat } from "@/lib/dsl-parser";
+import { ChevronDown, Columns2, FilePlus2, PanelRightOpen, Save } from "lucide-react";
+import { DSL_FORMAT_LABELS } from "@/lib/dsl-parser";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +8,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -17,44 +15,53 @@ import type { StoredTemplate } from "@/lib/template-store";
 
 interface GlobalToolbarProps {
   mode: "wireframe" | "ui";
-  format: DslFormat;
   canvasLayout: "split" | "preview";
   currentTemplateName: string;
   templates: StoredTemplate[];
   onCurrentTemplateNameChange: (name: string) => void;
   onModeChange: (mode: "wireframe" | "ui") => void;
-  onFormatChange: (format: DslFormat) => void;
   onCanvasLayoutChange: (layout: "split" | "preview") => void;
   onNewTemplate: () => void;
   onSaveCurrentTemplate: () => void;
   onOpenTemplate: (template: StoredTemplate) => void;
   onOpenTemplateManager: () => void;
-  ast: DslRoot | null;
   saveDisabled?: boolean;
 }
 
 const GlobalToolbar: React.FC<GlobalToolbarProps> = ({
   mode,
-  format,
   canvasLayout,
   currentTemplateName,
   templates,
   onCurrentTemplateNameChange,
   onModeChange,
-  onFormatChange,
   onCanvasLayoutChange,
   onNewTemplate,
   onSaveCurrentTemplate,
   onOpenTemplate,
   onOpenTemplateManager,
-  ast,
   saveDisabled = false,
 }) => {
-  const copyAst = () => {
-    if (ast) {
-      navigator.clipboard.writeText(JSON.stringify(ast, null, 2));
+  const [templateQuery, setTemplateQuery] = React.useState("");
+
+  const filteredTemplates = React.useMemo(() => {
+    const normalizedQuery = templateQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return templates;
     }
-  };
+
+    return templates.filter((template) => {
+      const searchableText = [
+        template.name,
+        template.id,
+        template.description,
+        template.category,
+        ...template.tags,
+      ].join(" ").toLowerCase();
+
+      return searchableText.includes(normalizedQuery);
+    });
+  }, [templateQuery, templates]);
 
   return (
     <AppHeader
@@ -88,34 +95,57 @@ const GlobalToolbar: React.FC<GlobalToolbarProps> = ({
             <Save className="h-4 w-4" />
           </Button>
 
-          <DropdownMenu>
+          <DropdownMenu onOpenChange={(open) => {
+            if (!open) {
+              setTemplateQuery("");
+            }
+          }}
+          >
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline">
                 Open
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-72">
-              <DropdownMenuLabel>Templates</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {templates.length === 0 ? (
-                <DropdownMenuItem disabled>No saved templates</DropdownMenuItem>
-              ) : (
-                templates.map((template) => (
-                  <DropdownMenuItem key={template.id} onClick={() => onOpenTemplate(template)}>
-                    <div className="flex w-full items-center justify-between gap-3">
-                      <span className="truncate">{template.name}</span>
-                      <span className="text-[10px] uppercase text-muted-foreground">
-                        {DSL_FORMAT_LABELS[template.format]}
-                      </span>
+            <DropdownMenuContent className="w-80 p-0">
+              <div className="flex max-h-[min(28rem,var(--radix-dropdown-menu-content-available-height))] flex-col">
+                <div className="border-b px-3 py-3">
+                  <DropdownMenuLabel className="px-0 py-0">Templates</DropdownMenuLabel>
+                  <div className="mt-2" onKeyDown={(event) => event.stopPropagation()}>
+                    <Input
+                      value={templateQuery}
+                      onChange={(event) => setTemplateQuery(event.target.value)}
+                      className="h-8 bg-background text-xs"
+                      placeholder="Search templates..."
+                    />
+                  </div>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto p-1">
+                  {filteredTemplates.length === 0 ? (
+                    <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                      {templates.length === 0 ? "No saved templates" : "No templates found"}
                     </div>
+                  ) : (
+                    filteredTemplates.map((template) => (
+                      <DropdownMenuItem key={template.id} onClick={() => onOpenTemplate(template)}>
+                        <div className="flex w-full items-center justify-between gap-3">
+                          <span className="truncate">{template.name}</span>
+                          <span className="text-[10px] uppercase text-muted-foreground">
+                            {DSL_FORMAT_LABELS[template.format]}
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </div>
+
+                <div className="border-t bg-popover p-1">
+                  <DropdownMenuItem onClick={onOpenTemplateManager} className="font-medium">
+                    Manage Templates
                   </DropdownMenuItem>
-                ))
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onOpenTemplateManager}>
-                Manage Templates
-              </DropdownMenuItem>
+                </div>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -135,23 +165,8 @@ const GlobalToolbar: React.FC<GlobalToolbarProps> = ({
       )}
     >
       <div className="flex rounded-md overflow-hidden border border-wire-stroke/30 shrink-0">
-        {(["yaml", "json"] as const).map((formatOption) => (
-          <button
-            key={formatOption}
-            onClick={() => onFormatChange(formatOption)}
-            className={`px-2.5 py-1 text-xs font-mono transition-colors ${
-              format === formatOption
-                ? "bg-primary text-primary-foreground"
-                : "text-console-fg hover:text-primary-foreground"
-            }`}
-          >
-            {DSL_FORMAT_LABELS[formatOption]}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex rounded-md overflow-hidden border border-wire-stroke/30 shrink-0">
         <button
+          type="button"
           onClick={() => onModeChange("wireframe")}
           className={`px-2.5 py-1 text-xs font-mono transition-colors ${
             mode === "wireframe"
@@ -162,6 +177,7 @@ const GlobalToolbar: React.FC<GlobalToolbarProps> = ({
           Wireframe
         </button>
         <button
+          type="button"
           onClick={() => onModeChange("ui")}
           className={`px-2.5 py-1 text-xs font-mono transition-colors ${
             mode === "ui"
@@ -175,6 +191,7 @@ const GlobalToolbar: React.FC<GlobalToolbarProps> = ({
 
       <div className="flex rounded-md overflow-hidden border border-wire-stroke/30 shrink-0">
         <button
+          type="button"
           onClick={() => onCanvasLayoutChange("split")}
           className={`px-2.5 py-1 text-xs font-mono transition-colors ${
             canvasLayout === "split"
@@ -189,6 +206,7 @@ const GlobalToolbar: React.FC<GlobalToolbarProps> = ({
           </span>
         </button>
         <button
+          type="button"
           onClick={() => onCanvasLayoutChange("preview")}
           className={`px-2.5 py-1 text-xs font-mono transition-colors ${
             canvasLayout === "preview"
@@ -203,16 +221,6 @@ const GlobalToolbar: React.FC<GlobalToolbarProps> = ({
           </span>
         </button>
       </div>
-
-      <button
-        onClick={copyAst}
-        disabled={!ast}
-        title="Copy JSON AST"
-        aria-label="Copy JSON AST"
-        className="inline-flex items-center justify-center px-2.5 py-1 text-xs font-mono text-console-fg border border-wire-stroke/30 rounded-md hover:text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-      >
-        <Copy className="h-3.5 w-3.5" />
-      </button>
     </AppHeader>
   );
 };
