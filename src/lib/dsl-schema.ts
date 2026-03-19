@@ -4,6 +4,7 @@ export const SUPPORTED_COMPONENT_TYPES = [
   "column",
   "grid",
   "menu",
+  "templates",
   "table",
   "input",
   "textarea",
@@ -148,6 +149,93 @@ function validateMenuNodeProps(props: unknown, path: string): ValidationError[] 
   return errors;
 }
 
+function validateTableNodeProps(props: unknown, path: string): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (props === undefined) {
+    errors.push({ message: `${path}: "table" requires a "props" object` });
+    return errors;
+  }
+
+  if (!isObjectRecord(props)) {
+    errors.push({ message: `${path}: "props" must be an object` });
+    return errors;
+  }
+
+  if (!Array.isArray(props.columns) || props.columns.length === 0) {
+    errors.push({ message: `${path}: "columns" must be a non-empty array` });
+  } else {
+    props.columns.forEach((col, index) => {
+      if (typeof col !== "string" || col.trim().length === 0) {
+        errors.push({ message: `${path}.columns[${index}]: must be a non-empty string` });
+      }
+    });
+  }
+
+  const rows = props.rows;
+  if (rows === undefined) {
+    return errors;
+  }
+
+  if (!Array.isArray(rows)) {
+    errors.push({ message: `${path}: "rows" must be an array` });
+    return errors;
+  }
+
+  rows.forEach((row, rowIndex) => {
+    if (!Array.isArray(row)) {
+      errors.push({ message: `${path}.rows[${rowIndex}]: must be an array` });
+      return;
+    }
+
+    row.forEach((cell, cellIndex) => {
+      const cellPath = `${path}.rows[${rowIndex}][${cellIndex}]`;
+
+      if (
+        cell === null
+        || typeof cell === "string"
+        || typeof cell === "number"
+        || typeof cell === "boolean"
+      ) {
+        return;
+      }
+
+      if (isObjectRecord(cell) && typeof cell.type === "string") {
+        errors.push(...validateNode(cell, cellPath));
+        return;
+      }
+
+      errors.push({ message: `${cellPath}: table cells must be string/number/boolean/null or a DSL node object` });
+    });
+  });
+
+  return errors;
+}
+
+function validateTemplatesNodeProps(props: unknown, path: string): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (props === undefined) {
+    errors.push({ message: `${path}: "templates" requires a "props" object` });
+    return errors;
+  }
+
+  if (!isObjectRecord(props)) {
+    errors.push({ message: `${path}: "props" must be an object` });
+    return errors;
+  }
+
+  if (typeof props.name !== "string" || props.name.trim().length === 0) {
+    errors.push({ message: `${path}: "name" must be a non-empty string` });
+  }
+
+  if (props.active !== undefined && typeof props.active !== "string") {
+    errors.push({ message: `${path}: "active" must be a string` });
+  }
+
+  return errors;
+}
+
 export function validateNode(node: unknown, path: string): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -172,6 +260,14 @@ export function validateNode(node: unknown, path: string): ValidationError[] {
 
   if (obj.type === "menu") {
     errors.push(...validateMenuNodeProps(obj.props, `${path}.props`));
+  }
+
+  if (obj.type === "table") {
+    errors.push(...validateTableNodeProps(obj.props, `${path}.props`));
+  }
+
+  if (obj.type === "templates") {
+    errors.push(...validateTemplatesNodeProps(obj.props, `${path}.props`));
   }
 
   if (obj.children !== undefined) {

@@ -54,6 +54,7 @@ That means the product intent is not "describe a UI in natural language and let 
 - `card`
 - `tabs`
 - `menu`
+- `templates`
 
 These are defined in [`src/lib/dsl-schema.ts`](../../src/lib/dsl-schema.ts) and rendered in [`src/components/DslRenderer.tsx`](../../src/components/DslRenderer.tsx).
 

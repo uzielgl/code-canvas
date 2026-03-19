@@ -46,16 +46,19 @@ The app will be available at **http://localhost:8082**.
 
 ## DSL Reference
 
-The DSL is written in YAML. Every document starts with a root `window` component.
+The DSL is written in YAML (or JSON). Every document starts with a top-level `root` node, and every node uses `type`, optional `props`, and optional `children`.
 
 ### Basic Structure
 
 ```yaml
-component: window
-title: My App
-children:
-  - component: text
-    content: Hello World
+root:
+  type: window
+  props:
+    title: My App
+  children:
+    - type: text
+      props:
+        content: Hello World
 ```
 
 ### Supported Components
@@ -63,9 +66,11 @@ children:
 | Component    | Key Props                                      |
 | ------------ | ---------------------------------------------- |
 | `window`     | `title`, `children`                            |
-| `row`        | `gap`, `children`                              |
-| `column`     | `gap`, `children`                              |
-| `grid`       | `columns`, `gap`, `children`                   |
+| `row`        | `children`, `link`                             |
+| `column`     | `children`, `link`                             |
+| `grid`       | `columns`, `children`, `link`                  |
+| `menu`       | `groups` or `items`                            |
+| `templates`  | `name`, `active`                               |
 | `card`       | `title`, `children`                            |
 | `tabs`       | `tabs` (array of `{ label, children }`)        |
 | `modal`      | `title`, `open`, `children`                    |
@@ -81,30 +86,42 @@ children:
 ### Example — Login Form
 
 ```yaml
-component: window
-title: Login
-children:
-  - component: card
-    title: Sign In
-    children:
-      - component: input
-        label: Email
-        placeholder: you@example.com
-        type: email
-      - component: input
-        label: Password
-        placeholder: "••••••••"
-        type: password
-      - component: row
-        gap: 8
-        children:
-          - component: button
-            label: Log In
-            variant: primary
-          - component: button
-            label: Cancel
-            variant: secondary
+root:
+  type: window
+  props:
+    title: Login
+  children:
+    - type: card
+      props:
+        title: Sign In
+      children:
+        - type: label
+          props:
+            text: Email
+        - type: input
+          props:
+            placeholder: you@example.com
+            inputType: email
+        - type: label
+          props:
+            text: Password
+        - type: input
+          props:
+            placeholder: "••••••••"
+            inputType: password
+        - type: row
+          children:
+            - type: button
+              props:
+                text: Log In
+                variant: primary
+            - type: button
+              props:
+                text: Cancel
+                variant: secondary
 ```
+
+For the full in-app reference and examples, visit the `/docs` and `/examples` routes.
 
 ## Tech Stack
 

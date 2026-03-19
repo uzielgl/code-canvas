@@ -23,6 +23,7 @@ const row = (...children: DslNode[]) => node("row", undefined, children);
 const column = (...children: DslNode[]) => node("column", undefined, children);
 const grid = (columns: number, ...children: DslNode[]) => node("grid", { columns }, children);
 const menu = (groups: Array<{ title?: string; items: Array<Record<string, unknown>> }>) => node("menu", { groups });
+const templates = (name: string, active?: string) => node("templates", { name, ...(active ? { active } : {}) });
 const card = (title: string, ...children: DslNode[]) => node("card", { title }, children);
 const tabs = (labels: string[], ...children: DslNode[]) => node("tabs", { tabs: labels }, children);
 const modal = (title: string, ...children: DslNode[]) => node("modal", { title, open: true }, children);
@@ -39,6 +40,102 @@ const table = (columns: string[], rows: Array<Array<string | number>>) => node("
 export const DEFAULT_EXAMPLE_ID = "workspace-starter";
 
 export const BUILT_IN_EXAMPLES: BuiltInExample[] = [
+  {
+    id: "layout-menu",
+    name: "layout.menu",
+    description: "Reusable menu layout to include via `templates`.",
+    category: "Layouts",
+    tags: ["templates", "menu", "layout"],
+    document: {
+      root: menu([
+        {
+          items: [
+            { label: "Dashboard", icon: "dashboard", active: true },
+          ],
+        },
+        {
+          title: "Gestión",
+          items: [
+            { label: "Businesses", icon: "business", link: "Businesses" },
+            { label: "Usuarios", icon: "users", link: "Usuarios" },
+            { label: "Templates", icon: "templates", link: "Templates" },
+            { label: "Categorías", icon: "category", link: "Categorias" },
+            { label: "Features", icon: "products", link: "Features" },
+            { label: "Planes", icon: "orders", link: "Planes" },
+            { label: "Media", icon: "templates", link: "Media" },
+          ],
+        },
+        {
+          title: "Contenido",
+          items: [
+            { label: "CMS / Views", icon: "templates", link: "Views" },
+            { label: "Soporte", icon: "tickets", badge: 7, link: "Soporte" },
+          ],
+        },
+        {
+          title: "Sistema",
+          items: [
+            { label: "Dominios", icon: "dashboard", link: "Dominios" },
+            { label: "Comisiones", icon: "orders", link: "Comisiones" },
+          ],
+        },
+      ]),
+    },
+  },
+  {
+    id: "admin-dashboard-invitaciones",
+    name: "Admin Dashboard — Invitaciones Digitales",
+    description: "Dashboard example that reuses the shared `layout.menu` template.",
+    category: "Layouts",
+    tags: ["dashboard", "templates", "menu"],
+    document: {
+      root: node("window", { title: "Admin Dashboard — Invitaciones Digitales" }, [
+        row(
+          templates("layout.menu", "Dashboard"),
+          column(
+            grid(
+              3,
+              card("Total businesses", text("48")),
+              card("Invitaciones creadas", text("1,284")),
+              card("Total invitados", text("32,450")),
+              card("Eventos activos", text("214")),
+              card("Storage usado", text("38.4 GB / 100 GB")),
+              card("Usuarios totales", text("312")),
+            ),
+            row(
+              card(
+                "Actividad reciente",
+                table(
+                  ["Evento", "Detalle", "Hace"],
+                  [
+                    ["Nuevo business", "Boda de Ana & Luis", "12 min"],
+                    ["Template creado", "Quinceañera Elegante", "1 hora"],
+                    ["Business suspendido", "Invitaciones Pérez", "2 horas"],
+                    ["Ticket abierto", "Problema con dominio", "3 horas"],
+                    ["Dominio verificado", "invitacionesdepepito.com", "5 horas"],
+                  ],
+                ),
+              ),
+              card(
+                "Estado del sistema",
+                table(
+                  ["Módulo", "Estado", "Valor"],
+                  [
+                    ["Businesses activos", "Activo", "44 / 48"],
+                    ["Businesses suspendidos", "Alerta", "4"],
+                    ["Tickets abiertos", "Pendiente", "7"],
+                    ["Dominios verificados", "Activo", "31 / 35"],
+                    ["Templates activos", "Activo", "28"],
+                    ["Storage", "Info", "38%"],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ]),
+    },
+  },
   {
     id: "grouped-admin-menu",
     name: "Grouped Admin Menu",

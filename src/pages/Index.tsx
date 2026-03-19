@@ -15,7 +15,7 @@ import {
   overwriteTemplate,
   updateTemplateMetadata,
 } from "@/lib/template-api";
-import { getBuiltInExampleById } from "@/lib/template-catalog";
+import { BUILT_IN_EXAMPLES, getBuiltInExampleById } from "@/lib/template-catalog";
 import type { DslRoot, ValidationError } from "@/lib/dsl-schema";
 import {
   slugifyTemplateName,
@@ -339,6 +339,41 @@ const Index: React.FC = () => {
     [ast, errors.length],
   );
 
+  const parsedTemplateRoots = useMemo(() => {
+    const rootsByTemplateId = new Map<string, DslRoot>();
+    templates.forEach((template) => {
+      const parsed = parseDsl(template.source, template.format);
+      if (parsed.ast) {
+        rootsByTemplateId.set(template.id, parsed.ast);
+      }
+    });
+    return rootsByTemplateId;
+  }, [templates]);
+
+  const resolveTemplateNode = useCallback((reference: string) => {
+    const normalized = reference.trim().toLowerCase();
+    if (!normalized) {
+      return null;
+    }
+
+    const matchedStored = templates.find((template) => (
+      template.name.trim().toLowerCase() === normalized
+      || template.id === slugifyTemplateName(reference)
+    ));
+
+    if (matchedStored) {
+      const parsed = parsedTemplateRoots.get(matchedStored.id);
+      return parsed?.root ?? null;
+    }
+
+    const matchedBuiltIn = BUILT_IN_EXAMPLES.find((example) => (
+      example.name.trim().toLowerCase() === normalized
+      || example.id === normalized
+    ));
+
+    return matchedBuiltIn?.document.root ?? null;
+  }, [parsedTemplateRoots, templates]);
+
   return (
     <>
       <div className="h-screen flex flex-col overflow-hidden">
@@ -374,6 +409,7 @@ const Index: React.FC = () => {
               mode={mode}
               errors={errors}
               onActivateLink={handleOpenTemplateByReference}
+              resolveTemplate={resolveTemplateNode}
             />
           </div>
         </div>

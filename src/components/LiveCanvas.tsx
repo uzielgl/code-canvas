@@ -1,5 +1,5 @@
 import React from "react";
-import type { DslRoot } from "@/lib/dsl-schema";
+import type { DslNode, DslRoot } from "@/lib/dsl-schema";
 import type { ValidationError } from "@/lib/dsl-schema";
 import NodeRenderer from "./DslRenderer";
 
@@ -8,15 +8,22 @@ interface LiveCanvasProps {
   mode: "wireframe" | "ui";
   errors: ValidationError[];
   onActivateLink?: (reference: string) => void;
+  resolveTemplate?: (reference: string) => DslNode | null;
 }
 
-const LiveCanvas: React.FC<LiveCanvasProps> = ({ ast, mode, errors, onActivateLink }) => {
+const LiveCanvas: React.FC<LiveCanvasProps> = ({ ast, mode, errors, onActivateLink, resolveTemplate }) => {
   const isWire = mode === "wireframe";
 
   return (
     <div className={`h-full overflow-auto p-6 relative ${isWire ? "dot-grid-bg bg-wire-bg" : "bg-surface"}`}>
       {ast ? (
-        <NodeRenderer node={ast.root} mode={mode} onActivateLink={onActivateLink} />
+        <NodeRenderer
+          node={ast.root}
+          mode={mode}
+          onActivateLink={onActivateLink}
+          resolveTemplate={resolveTemplate}
+          templateStack={[]}
+        />
       ) : errors.length > 0 ? (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 validation-fade-in">
           <div className="text-center space-y-2">

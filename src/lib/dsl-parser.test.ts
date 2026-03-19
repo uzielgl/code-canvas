@@ -77,4 +77,52 @@ describe("dsl parser", () => {
     expect(result.errors).toEqual([]);
     expect(result.ast?.root.children?.[0].type).toBe("menu");
   });
+
+  it("accepts a templates include node with a name", () => {
+    const source = `root:
+  type: window
+  children:
+    - type: templates
+      props:
+        name: layout.menu
+        active: Dashboard
+`;
+
+    const result = parseDsl(source, "yaml");
+
+    expect(result.errors).toEqual([]);
+    expect(result.ast?.root.children?.[0].type).toBe("templates");
+  });
+
+  it("rejects a templates include node without a name", () => {
+    const source = `root:
+  type: window
+  children:
+    - type: templates
+      props:
+        active: Dashboard
+`;
+
+    const result = parseDsl(source, "yaml");
+
+    expect(result.ast).toBeNull();
+    expect(result.errors.map((error) => error.message).join("\\n")).toContain('"name" must be a non-empty string');
+  });
+
+  it("accepts table rows with embedded button nodes as cells", () => {
+    const source = `root:
+  type: window
+  children:
+    - type: table
+      props:
+        columns: [ID, Nombre, Acciones]
+        rows:
+          - [1, "Boda de Ana & Luis", { type: button, props: { text: "Ver", variant: primary, link: "Businesses" } }]
+`;
+
+    const result = parseDsl(source, "yaml");
+
+    expect(result.errors).toEqual([]);
+    expect(result.ast?.root.children?.[0].type).toBe("table");
+  });
 });

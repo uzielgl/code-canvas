@@ -21,6 +21,7 @@ export const DSL_CORE_RULES = [
   "El DSL es estricto y determinista: no escribas texto libre esperando que la app lo interprete.",
   "Si un componente no soporta `children`, debes modelar el layout con `row`, `column`, `grid` o `card`.",
   "Para navegación compleja usa `menu` con `groups` e `items` explícitos.",
+  "Para reutilizar layouts guardados, usa `templates` para incluir un template por nombre dentro de otro.",
   "Puedes usar `link` en elementos interactivos para abrir una URL web o un template guardado por nombre.",
   "Los nombres de templates deben ser únicos. Guardar con el mismo nombre actualiza el template actual; un nombre repetido en otro template se rechaza.",
 ];
@@ -32,16 +33,10 @@ export const DSL_QUICKSTART_EXAMPLE = `root:
   children:
     - type: row
       children:
-        - type: menu
+        - type: templates
           props:
-            groups:
-              - items:
-                  - label: Dashboard
-                    icon: dashboard
-                    active: true
-                  - label: Users
-                    icon: users
-                    badge: 12
+            name: layout.menu
+            active: Dashboard
         - type: column
           children:
             - type: card
@@ -112,6 +107,14 @@ Admin Dashboard
 
 Resultado del id:
 admin-dashboard`,
+  },
+  {
+    title: "Reutilizar templates (include)",
+    description: "Usa `templates` para incluir el root de otro template guardado por nombre (por ejemplo un `layout.menu`). Si el template incluido es un `menu`, puedes pasar `active` para marcar automáticamente el item cuyo `label` coincide.",
+    example: `- type: templates
+  props:
+    name: layout.menu
+    active: Dashboard`,
   },
 ];
 
@@ -202,18 +205,35 @@ export const DSL_COMPONENT_REFERENCE: DslComponentReference[] = [
     notes: ["Ideal para generar sidebars a través de IA.", "Solo un item debería ir activo por sección o por menú."],
   },
   {
+    type: "templates",
+    description: "Incluye (reutiliza) el `root` de otro template guardado, por nombre o id, dentro del documento actual.",
+    props: [
+      { name: "name", type: "string", required: true, description: "Nombre o id del template a incluir (ej: `layout.menu`)." },
+      { name: "active", type: "string", description: "Opcional. Si el template incluido es un `menu`, activa el item cuyo `label` coincide." },
+    ],
+    example: `- type: templates
+  props:
+    name: layout.menu
+    active: Dashboard`,
+    notes: [
+      "Esto permite mantener layouts compartidos (como sidebars) en un solo lugar.",
+      "Si el template no existe, el preview mostrará un error en el canvas.",
+    ],
+  },
+  {
     type: "table",
     description: "Tabla para datos tabulares.",
     props: [
       { name: "columns", type: "string[]", required: true, description: "Headers de la tabla." },
-      { name: "rows", type: "array[]", required: true, description: "Filas de datos." },
+      { name: "rows", type: "array[]", required: true, description: "Filas de datos. Cada celda puede ser texto/número o un nodo DSL (ej: un `button` con `link`)." },
       { name: "link", type: "string", description: "Opcional. Hace clickeable la tabla completa." },
     ],
     example: `- type: table
   props:
     columns: [ID, Name, Status]
     rows:
-      - [001, Acme, Active]`,
+      - [001, Acme, Active]
+      - [002, Beta, { type: button, props: { text: "Ver", variant: primary, link: "https://example.com" } }]`,
   },
   {
     type: "input",

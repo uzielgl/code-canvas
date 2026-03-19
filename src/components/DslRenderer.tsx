@@ -24,6 +24,8 @@ interface RendererProps {
   node: DslNode;
   mode: "wireframe" | "ui";
   onActivateLink?: (reference: string) => void;
+  resolveTemplate?: (reference: string) => DslNode | null;
+  templateStack?: string[];
 }
 
 interface MenuItemConfig {
@@ -119,6 +121,10 @@ function getInteractiveProps(
   };
 }
 
+function isDslNodeLike(value: unknown): value is DslNode {
+  return typeof value === "object" && value !== null && !Array.isArray(value) && typeof (value as { type?: unknown }).type === "string";
+}
+
 function normalizeMenuGroups(props: Record<string, unknown>): MenuGroupConfig[] {
   const directItems = Array.isArray(props.items)
     ? [{ items: props.items }]
@@ -165,7 +171,7 @@ function getMenuIcon(iconName?: string): LucideIcon {
   return menuIcons[iconName.toLowerCase()] ?? LayoutDashboard;
 }
 
-const TabsRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) => {
+const TabsRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink, resolveTemplate, templateStack }) => {
   const w = wire(mode);
   const p = node.props ?? {};
   const tabLabels = Array.isArray(p.tabs) ? p.tabs.map(String) : ["Tab 1", "Tab 2"];
@@ -190,7 +196,15 @@ const TabsRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) =
           </button>
         ))}
       </div>
-      {children[boundedIndex] && <NodeRenderer node={children[boundedIndex]} mode={mode} onActivateLink={onActivateLink} />}
+      {children[boundedIndex] && (
+        <NodeRenderer
+          node={children[boundedIndex]}
+          mode={mode}
+          onActivateLink={onActivateLink}
+          resolveTemplate={resolveTemplate}
+          templateStack={templateStack}
+        />
+      )}
     </div>
   );
 };
@@ -264,14 +278,65 @@ const MenuRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) =
   );
 };
 
-const NodeRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) => {
+function cloneWithMenuActive(menuNode: DslNode, activeLabel: string): DslNode {
+  const props = (menuNode.props ?? {}) as Record<string, unknown>;
+  const activeNormalized = activeLabel.trim().toLowerCase();
+
+  const applyToItems = (items: unknown): unknown => {
+    if (!Array.isArray(items)) {
+      return items;
+    }
+
+    return items.map((item) => {
+      if (typeof item !== "object" || item === null || Array.isArray(item)) {
+        return item;
+      }
+
+      const record = item as Record<string, unknown>;
+      const label = typeof record.label === "string" ? record.label : String(record.label ?? "");
+      const isActive = label.trim().toLowerCase() === activeNormalized;
+      return { ...record, active: isActive };
+    });
+  };
+
+  const nextProps: Record<string, unknown> = { ...props };
+
+  if (Array.isArray(props.groups)) {
+    nextProps.groups = props.groups.map((group) => {
+      if (typeof group !== "object" || group === null || Array.isArray(group)) {
+        return group;
+      }
+
+      const groupRecord = group as Record<string, unknown>;
+      return {
+        ...groupRecord,
+        items: applyToItems(groupRecord.items),
+      };
+    });
+  }
+
+  if (Array.isArray(props.items)) {
+    nextProps.items = applyToItems(props.items);
+  }
+
+  return { ...menuNode, props: nextProps };
+}
+
+const NodeRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink, resolveTemplate, templateStack }) => {
   const p = node.props ?? {};
   const w = wire(mode);
   const nodeLink = getNodeLink(p);
 
   const renderChildren = () =>
     node.children?.map((child, i) => (
-      <NodeRenderer key={child.id ?? i} node={child} mode={mode} onActivateLink={onActivateLink} />
+      <NodeRenderer
+        key={child.id ?? i}
+        node={child}
+        mode={mode}
+        onActivateLink={onActivateLink}
+        resolveTemplate={resolveTemplate}
+        templateStack={templateStack}
+      />
     ));
 
   switch (node.type) {
@@ -321,6 +386,52 @@ const NodeRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) =
 
     case "menu":
       return <MenuRenderer node={node} mode={mode} onActivateLink={onActivateLink} />;
+
+    case "templates": {
+      const name = typeof p.name === "string" ? p.name : "";
+      const active = typeof p.active === "string" ? p.active : undefined;
+      const normalizedName = name.trim().toLowerCase();
+      const stack = templateStack ?? [];
+
+      if (normalizedName && stack.includes(normalizedName)) {
+        return (
+          <div className="text-destructive font-mono text-xs p-1 border border-destructive">
+            Recursive template include: {name}
+          </div>
+        );
+      }
+
+      if (!resolveTemplate) {
+        return (
+          <div className="text-destructive font-mono text-xs p-1 border border-destructive">
+            Missing template resolver for: {name || "(unnamed)"}
+          </div>
+        );
+      }
+
+      const resolved = name ? resolveTemplate(name) : null;
+      if (!resolved) {
+        return (
+          <div className="text-destructive font-mono text-xs p-1 border border-destructive">
+            Template not found: {name || "(unnamed)"}
+          </div>
+        );
+      }
+
+      const renderedNode = active && resolved.type === "menu"
+        ? cloneWithMenuActive(resolved, active)
+        : resolved;
+
+      return (
+        <NodeRenderer
+          node={renderedNode}
+          mode={mode}
+          onActivateLink={onActivateLink}
+          resolveTemplate={resolveTemplate}
+          templateStack={normalizedName ? [...stack, normalizedName] : stack}
+        />
+      );
+    }
 
     case "card": {
       const baseClassName = w
@@ -484,11 +595,24 @@ const NodeRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) =
             <tbody>
               {rows.map((row, ri) => (
                 <tr key={ri} className={w ? "border-b border-wire-stroke last:border-0" : "border-b border-border last:border-0"}>
-                  {(Array.isArray(row) ? row : [row]).map((cell, ci) => (
-                    <td key={ci} className={w ? "px-2 py-1 font-mono text-xs" : "px-4 py-2 text-sm"}>
-                      {String(cell)}
-                    </td>
-                  ))}
+                  {(Array.isArray(row) ? row : [row]).map((cell, ci) => {
+                    const cellClassName = w ? "px-2 py-1 font-mono text-xs" : "px-4 py-2 text-sm";
+                    return (
+                      <td key={ci} className={cellClassName}>
+                        {isDslNodeLike(cell) ? (
+                          <NodeRenderer
+                            node={cell}
+                            mode={mode}
+                            onActivateLink={onActivateLink}
+                            resolveTemplate={resolveTemplate}
+                            templateStack={templateStack}
+                          />
+                        ) : (
+                          String(cell ?? "")
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -518,7 +642,15 @@ const NodeRenderer: React.FC<RendererProps> = ({ node, mode, onActivateLink }) =
     }
 
     case "tabs":
-      return <TabsRenderer node={node} mode={mode} onActivateLink={onActivateLink} />;
+      return (
+        <TabsRenderer
+          node={node}
+          mode={mode}
+          onActivateLink={onActivateLink}
+          resolveTemplate={resolveTemplate}
+          templateStack={templateStack}
+        />
+      );
 
     default:
       return (
