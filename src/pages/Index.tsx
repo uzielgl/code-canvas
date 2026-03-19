@@ -6,7 +6,7 @@ import LiveCanvas from "@/components/LiveCanvas";
 import ValidationConsole from "@/components/ValidationConsole";
 import GlobalToolbar from "@/components/GlobalToolbar";
 import TemplateManagerDialog from "@/components/TemplateManagerDialog";
-import { DEFAULT_DSL } from "@/lib/default-template";
+import { DEFAULT_DSL, DEFAULT_JSON_DSL } from "@/lib/default-template";
 import { parseDsl, serializeDsl, type DslFormat } from "@/lib/dsl-parser";
 import {
   createTemplate,
@@ -24,12 +24,65 @@ import {
   sortTemplatesByUpdatedAt,
 } from "@/lib/template-store";
 
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+
+const LS_CANVAS_LAYOUT = "wireframedsl.canvasLayout";
+const LS_SPLIT_LEFT_SIZE = "wireframedsl.splitLeftSize";
+const LS_MODE = "wireframedsl.mode";
+const LS_FORMAT = "wireframedsl.format";
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 const Index: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [dsl, setDsl] = useState(DEFAULT_DSL);
-  const [format, setFormat] = useState<DslFormat>("yaml");
-  const [mode, setMode] = useState<"wireframe" | "ui">("ui");
-  const [canvasLayout, setCanvasLayout] = useState<"split" | "preview">("split");
+  const [dsl, setDsl] = useState(() => {
+    if (typeof window === "undefined") {
+      return DEFAULT_DSL;
+    }
+
+    const stored = window.localStorage.getItem(LS_FORMAT);
+    return stored === "json" ? DEFAULT_JSON_DSL : DEFAULT_DSL;
+  });
+  const [format, setFormat] = useState<DslFormat>(() => {
+    if (typeof window === "undefined") {
+      return "yaml";
+    }
+
+    const stored = window.localStorage.getItem(LS_FORMAT);
+    return stored === "json" ? "json" : "yaml";
+  });
+  const [mode, setMode] = useState<"wireframe" | "ui">(() => {
+    if (typeof window === "undefined") {
+      return "ui";
+    }
+
+    const stored = window.localStorage.getItem(LS_MODE);
+    return stored === "wireframe" ? "wireframe" : "ui";
+  });
+  const [canvasLayout, setCanvasLayout] = useState<"split" | "preview">(() => {
+    if (typeof window === "undefined") {
+      return "split";
+    }
+
+    const stored = window.localStorage.getItem(LS_CANVAS_LAYOUT);
+    return stored === "preview" ? "preview" : "split";
+  });
+  const [splitLeftSize, setSplitLeftSize] = useState<number>(() => {
+    if (typeof window === "undefined") {
+      return 50;
+    }
+
+    const raw = window.localStorage.getItem(LS_SPLIT_LEFT_SIZE);
+    const parsed = raw ? Number(raw) : NaN;
+    if (Number.isNaN(parsed)) {
+      return 50;
+    }
+
+    // Keep both panels usable.
+    return clamp(parsed, 20, 80);
+  });
   const [ast, setAst] = useState<DslRoot | null>(null);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [templates, setTemplates] = useState<StoredTemplate[]>([]);
@@ -158,6 +211,30 @@ const Index: React.FC = () => {
       setCurrentTemplateName(currentTemplate.name);
     }
   }, [currentTemplate]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(LS_CANVAS_LAYOUT, canvasLayout);
+  }, [canvasLayout]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(LS_MODE, mode);
+  }, [mode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(LS_FORMAT, format);
+  }, [format]);
 
   const handleFormatChange = useCallback((nextFormat: DslFormat) => {
     if (nextFormat === format) {
@@ -394,24 +471,49 @@ const Index: React.FC = () => {
           ast={ast}
           saveDisabled={!templatesLoaded}
         />
-        <div className="flex flex-1 min-h-0">
-          {canvasLayout === "split" && (
-            <div className="w-1/2 flex flex-col border-r border-border min-h-0">
-              <div className="flex-1 min-h-0">
-                <DslEditor value={dsl} onChange={setDsl} format={format} />
-              </div>
-              <ValidationConsole errors={errors} />
+        <div className="flex flex-1 min-h-0 h-full">
+          {canvasLayout === "split" ? (
+            <ResizablePanelGroup
+              direction="horizontal"
+              className="flex-1 min-h-0"
+              onLayout={(sizes) => {
+                const rawLeft = sizes[0] ?? splitLeftSize;
+                const nextLeft = clamp(rawLeft, 20, 80);
+                setSplitLeftSize(nextLeft);
+
+                if (typeof window !== "undefined") {
+                  window.localStorage.setItem(LS_SPLIT_LEFT_SIZE, String(nextLeft));
+                }
+              }}
+            >
+              <ResizablePanel defaultSize={splitLeftSize} minSize={20} className="flex flex-col min-h-0">
+                <div className="flex-1 min-h-0">
+                  <DslEditor value={dsl} onChange={setDsl} format={format} />
+                </div>
+                <ValidationConsole errors={errors} />
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel minSize={20} defaultSize={100 - splitLeftSize} className="min-h-0 h-full">
+                <LiveCanvas
+                  ast={previewAst}
+                  mode={mode}
+                  errors={errors}
+                  onActivateLink={handleOpenTemplateByReference}
+                  resolveTemplate={resolveTemplateNode}
+                />
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          ) : (
+            <div className="w-full min-h-0">
+              <LiveCanvas
+                ast={previewAst}
+                mode={mode}
+                errors={errors}
+                onActivateLink={handleOpenTemplateByReference}
+                resolveTemplate={resolveTemplateNode}
+              />
             </div>
           )}
-          <div className={`${canvasLayout === "split" ? "w-1/2" : "w-full"} min-h-0`}>
-            <LiveCanvas
-              ast={previewAst}
-              mode={mode}
-              errors={errors}
-              onActivateLink={handleOpenTemplateByReference}
-              resolveTemplate={resolveTemplateNode}
-            />
-          </div>
         </div>
       </div>
 
