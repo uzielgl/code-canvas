@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import AITerminalPanel from "@/components/AITerminalPanel";
 import DslEditor from "@/components/DslEditor";
 import EditorSettingsDock from "@/components/EditorSettingsDock";
 import LiveCanvas from "@/components/LiveCanvas";
@@ -105,6 +106,7 @@ const Index: React.FC = () => {
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
   const [isEditorSettingsOpen, setIsEditorSettingsOpen] = useState(false);
+  const [isAiTerminalOpen, setIsAiTerminalOpen] = useState(false);
   const [currentTemplateName, setCurrentTemplateName] = useState("Workspace Starter");
   const lastValidAst = useRef<DslRoot | null>(null);
   const appliedDocumentRef = useRef<string | null>(null);
@@ -521,6 +523,7 @@ const Index: React.FC = () => {
                   format={format}
                   wordWrapEnabled={wordWrapEnabled}
                   isOpen={isEditorSettingsOpen}
+                  onAiClick={() => setIsAiTerminalOpen(true)}
                   onOpenChange={setIsEditorSettingsOpen}
                   onFormatChange={handleFormatChange}
                   onWordWrapChange={handleWordWrapChange}
@@ -564,6 +567,7 @@ const Index: React.FC = () => {
         onOverwriteTemplate={handleOverwriteTemplate}
         onDeleteTemplate={handleDeleteTemplate}
       />
+      <AITerminalPanel open={isAiTerminalOpen} onOpenChange={setIsAiTerminalOpen} />
     </>
   );
 };

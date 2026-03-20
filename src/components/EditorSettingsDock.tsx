@@ -11,6 +11,7 @@ interface EditorSettingsDockProps {
   wordWrapEnabled: boolean;
   isOpen: boolean;
   className?: string;
+  onAiClick: () => void;
   onOpenChange: (open: boolean) => void;
   onFormatChange: (format: DslFormat) => void;
   onWordWrapChange: (enabled: boolean) => void;
@@ -61,6 +62,7 @@ const EditorSettingsDock: React.FC<EditorSettingsDockProps> = ({
   wordWrapEnabled,
   isOpen,
   className,
+  onAiClick,
   onOpenChange,
   onFormatChange,
   onWordWrapChange,
@@ -139,7 +141,15 @@ const EditorSettingsDock: React.FC<EditorSettingsDockProps> = ({
         </div>
       ) : null}
 
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-1.5">
+        <Button
+          type="button"
+          size="sm"
+          className="h-8 rounded-full px-3 text-xs font-mono"
+          onClick={onAiClick}
+        >
+          AI
+        </Button>
         <Button
           type="button"
           size="sm"

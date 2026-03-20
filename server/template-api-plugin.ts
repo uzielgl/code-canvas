@@ -9,6 +9,7 @@ import {
   overwriteTemplateRecord,
   updateTemplateMetadataRecord,
 } from "./template-repository";
+import { handleTerminalRequest } from "./terminal-api";
 
 type NextFunction = (error?: unknown) => void;
 
@@ -99,12 +100,26 @@ export function templateApiPlugin(): Plugin {
     name: "template-api-plugin",
     configureServer(server) {
       server.middlewares.use((request, response, next) => {
-        void handleTemplateRequest(request, response, next);
+        void handleTemplateRequest(request, response, (templateError) => {
+          if (templateError) {
+            next(templateError);
+            return;
+          }
+
+          void handleTerminalRequest(request, response, next);
+        });
       });
     },
     configurePreviewServer(server) {
       server.middlewares.use((request, response, next) => {
-        void handleTemplateRequest(request, response, next);
+        void handleTemplateRequest(request, response, (templateError) => {
+          if (templateError) {
+            next(templateError);
+            return;
+          }
+
+          void handleTerminalRequest(request, response, next);
+        });
       });
     },
   };
